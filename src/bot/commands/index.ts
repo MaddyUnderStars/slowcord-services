@@ -15,7 +15,7 @@ export type Command = {
 	exec: (ctx: CommandContext) => any;
 };
 
-// TODO: get the 
+// TODO: get commands less poorly
 export default {
 	"instance": Instance
 };
