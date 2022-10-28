@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
 import { Client } from "fosscord-gopnik/build/lib"; // huh? oh well. some bugs in my lib Ig
 
-import { Command, getCommands } from "./commands/index.js";
+import { Command, default as Commands } from "./commands/index.js";
 
 export default class Bot {
 	client: Client;
@@ -12,7 +12,7 @@ export default class Bot {
 	}
 
 	onReady = async () => {
-		this.commands = await getCommands();
+		this.commands = Commands;
 
 		console.log(`Logged in as ${this.client.user!.tag}`);
 
