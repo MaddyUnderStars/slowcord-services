@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/css/index.css">
+	<title>Slowcord Status</title>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>
+				<a href="/">Slowcord Status</a>
+			</h1>
+			<p>
+				For detailed performance and uptime information, visit our
+				<a href="https://grafana.understars.dev">Grafana</a>
+			</p>
+		</div>
+
+		<div class="content" id="incidents">
+		</div>
+	</div>
+
+	<script>
+		const container = document.getElementById("incidents");
+
+		(async () => {
+			const resp = await fetch(`/api/v2/${window.location.pathname.split("/")[2]}.json`);
+			const json = await resp.json();
+
+			const template = `
+					<div class="incident">
+						<div class="incident-header">
+							<h2 class="incident-name">${json.name}</h2>
+							<p class="incident-date">${json.scheduled_for}</p>
+						</div>
+
+						<p class="incident-desc">${json.description}</p>
+					</div>
+				`;
+
+			container.innerHTML += template;
+		})();
+	</script>
+</body>
+
+</html>

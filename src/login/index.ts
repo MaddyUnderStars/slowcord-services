@@ -6,9 +6,11 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import fetch from "node-fetch";
 
+const PUBLIC_PATH = path.join(process.cwd(), "src", "login", "public");
+
 const app = express();
 app.use(cookieParser());
-const port = process.env.PORT;
+const port = process.env.LOGIN_PORT;
 
 app.get("/oauth/:type", async (req, res) => {
 	const resp = await fetch(`${process.env.ENDPOINT_API}/oauth2/callback/${req.params.type}?code=${req.query.code}`);
@@ -17,11 +19,10 @@ app.get("/oauth/:type", async (req, res) => {
 
 	res.cookie("token", token);
 
-	res.sendFile(path.join(process.cwd(), "public", "login.html"));
+	res.sendFile(path.join(PUBLIC_PATH, "login.html"));
 });
 
-console.log(process.cwd());
-app.use(express.static(path.join(process.cwd(), "public"), { extensions: ["html"] }));
+app.use(express.static(PUBLIC_PATH, { extensions: ["html"] }));
 
 (async () => {
 	app.listen(port, () => {
