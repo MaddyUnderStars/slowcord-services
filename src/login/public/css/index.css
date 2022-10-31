@@ -7,16 +7,23 @@ html {
 	--background-login-discord: #5865f2;
 
 	background: url("https://slowcord.understars.dev/assets/background.png");
-	background-size: 100% 100%;
+	background-size: cover;
 	background-repeat: no-repeat;
 
 	font-family: "Montserrat", sans-serif;
 
 	color: var(--foreground-primary);
+
+	overflow: hidden;
+}
+
+a {
+	color: var(--foreground-primary);
 }
 
 * {
 	margin: 0;
+	appearance: none;
 	padding: 0;
 }
 
@@ -30,14 +37,16 @@ html {
 
 .login {
 	height: 100%;
-	width: 25%;
-	min-width: 400px;
+	width: 30%;
+	min-width: 500px;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
 
 	background-color: var(--background-primary);
+
+	box-sizing: border-box;
 
 	padding: 0 50px 0 50px;
 }
@@ -51,18 +60,11 @@ html {
 	justify-content: center;
 }
 
-.header-subtext {
-	text-align: center;
-}
-
 .header-subtext a,
 .header-subtext p {
+	text-align: center;
 	display: inline-block;
 	margin: 0 10px 0 10px;
-}
-
-a {
-	color: var(--foreground-primary);
 }
 
 form {
@@ -110,4 +112,12 @@ label {
 	display: flex;
 	justify-content: center;
 	margin-top: 10px;
+}
+
+
+@media only screen and (max-width: 600px) {
+	.login {
+		width: 100vw;
+		min-width: auto;
+	}
 }

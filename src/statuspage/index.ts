@@ -16,7 +16,7 @@ const SRC_PATH = path.join(process.cwd(), "src", "statuspage");
 const app = express();
 
 app.use(cors());
-app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/api/v2/scheduled-maintenances/upcoming.json", async (req, res) => {
 	const file = await fs.promises.readFile(path.join(SRC_PATH, "incidents.json"));
@@ -67,7 +67,7 @@ app.post("/api/v2/new", async (req, res) => {
 	const json = JSON.parse(text);
 	json.push({ id: json.length, ...req.body });
 	await fs.promises.writeFile(file, JSON.stringify(json));
-	return res.redirect(`/incidents/${json.length - 1}`)
+	return res.redirect(`/incidents/${json.length - 1}`);
 });
 
 app.use("/secure", express.static(path.join(SRC_PATH, "secure"), { extensions: ["html"] }));
