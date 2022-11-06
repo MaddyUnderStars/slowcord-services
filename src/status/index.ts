@@ -3,14 +3,19 @@ import https from "https";
 import mysql from "mysql2";
 import fetch from "node-fetch";
 
-const dbConn = mysql.createConnection(process.env.DATABASE as string);
+var dbConn: mysql.Connection;
 const executePromise = (sql: string, args: any[]) =>
-	new Promise((resolve, reject) =>
-		dbConn.execute(sql, args, (err, res) => {
-			if (err) reject(err);
-			else resolve(res);
-		}),
-	);
+	new Promise((resolve, reject) => {
+		dbConn = mysql.createConnection(process.env.DATABASE as string);
+		dbConn.connect(() => {
+			dbConn!.execute(sql, args, (err, res) => {
+				dbConn.end(() => {
+					if (err) reject(err);
+					else resolve(res);
+				});
+			});
+		});
+	});
 
 const instance = {
 	app: process.env.ENDPOINT_APP as string,
@@ -115,8 +120,8 @@ interface monitorzSchema {
 }
 
 const app = async () => {
-	await new Promise((resolve) => dbConn.connect(resolve));
-	console.log("Connected to db");
+	// await new Promise((resolve) => dbConn.connect(resolve));
+	// console.log("Connected to db");
 	// await client.login(instance.token);
 
 	console.log(
