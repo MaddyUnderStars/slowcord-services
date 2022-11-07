@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Slowcord</title>
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+
+	<style>
+		html,
+		body {
+			font-family: 'Montserrat', sans-serif;
+
+			--text-primary: white;
+			--background-primary: white;
+
+			--text-elevated: white;
+			--background-elevated: rgba(0, 0, 0, 0.9);
+			--background-elevated-less: rgba(0, 0, 0, 0.8);
+		}
+
+		* {
+			padding: 0;
+			margin: 0;
+			color: var(--text-primary);
+		}
+
+		.container {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			height: 100vh;
+
+			font-size: clamp(1rem, 2vw, 3rem);
+
+			background: rgb(102, 52, 152);
+			background: linear-gradient(45deg, #0b0b9c 0%, #520a8a 100%);
+
+			background-size: 300%;
+
+			animation: background 10s ease infinite;
+
+			color: var(--text-primary);
+		}
+
+		@keyframes background {
+			0% { background-position: 0% 0% }
+			50% { background-position: 100% 100% }
+			100% { background-position: 0% 0% }
+		}
+
+		.buttons {
+			margin-top: 20px;
+			flex-wrap: wrap;
+			font-size: clamp(1rem, 2vw, 1.5rem);
+			display: grid;
+			grid-template-columns: 1fr 1fr 1fr;
+		}
+
+		.buttons a,
+		.buttons a:visited {
+			text-decoration: none;
+			color: var(--text-elevated);
+
+			padding: 15px;
+			margin: 0 10px 0 10px;
+			border-radius: 5px;
+			background-color: var(--background-elevated);
+			text-align: center;
+
+			transition: linear background-color 0.1s;
+
+			box-sizing: border-box;
+		}
+
+		.buttons a:hover {
+			background-color: var(--background-elevated-less);
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<h1>Slowcord</h1>
+		<p>A heavily modified <a href="https://github.com/fosscord/fosscord-server">Fosscord</a> instance</p>
+		<div class="buttons">
+			<a href="https://slowcord.understars.dev/app">Open the app</a>
+			<a href="https://status.understars.dev">Maintenance</a>
+			<a href="https://grafana.understars.dev">Grafana</a>
+		</div>
+	</div>
+</body>
+
+</html>
