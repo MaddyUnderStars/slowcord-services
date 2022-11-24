@@ -1,163 +1,120 @@
+/*
+	alright.
+	so the previous versions of this kinda sucked,
+	because the node event loop would cause a whole ton of stuff that just broke timing.
+	so here's a new attempt and not breaking timing
+	( basically, just spawn different processes to do it :p )
+*/
+
 import "dotenv/config";
-import https from "https";
-import mysql from "mysql2";
+import child_process from "child_process";
+import util from "util";
+const exec = util.promisify(child_process.exec);
+
+import Fosscord from "fosscord-gopnik";
+
+import mysql from "mysql2/promise";
+
 import fetch from "node-fetch";
 
-var dbConn: mysql.Connection;
-const executePromise = (sql: string, args: any[]) =>
-	new Promise((resolve, reject) => {
-		dbConn = mysql.createConnection(process.env.DATABASE as string);
-		dbConn.connect(() => {
-			dbConn!.execute(sql, args, (err, res) => {
-				dbConn.end(() => {
-					if (err) reject(err);
-					else resolve(res);
-				});
-			});
-		});
-	});
-
-const instance = {
-	app: process.env.ENDPOINT_APP as string,
-	api: process.env.ENDPOINT_API as string,
-	cdn: process.env.ENDPOINT_CDN as string,
-	token: process.env.TOKEN as string,
-};
-
-const savePerf = async (time: number, name: string, error?: string | Error) => {
-	if (error && typeof error != "string") error = error.message;
+const doUrlMeasurement = async (url: URL) => {
 	try {
-		await executePromise(
-			"INSERT INTO performance (value, endpoint, timestamp, error) VALUES (?, ?, ?, ?)",
-			[time ?? 0, name, new Date(), error ?? null],
+		const { stdout } = await exec(
+			`curl "${url.toString()}" -H "Authorization: ${process.env.TOKEN}" -s --fail --show-error -I -X GET -o NUL -w "%{time_pretransfer}\\n%{time_total}"`
 		);
-		// await executePromise("DELETE FROM performance WHERE DATE(timestamp) < now() - interval ? DAY", [process.env.RETENTION_DAYS]);
-	} catch (e) {
-		console.error(e);
+		const split = stdout.split("\n");
+		const pretransfer = parseFloat(split[1]);
+		const total = parseFloat(split[0]);
+		return Math.floor((pretransfer - total) * 1000);
+	}
+	catch (e: any) {
+		// console.error(e.stderr.split(": ")[2].trim());
+		return -1;
 	}
 };
 
-const saveSystemUsage = async (
-	load: number,
-	procUptime: number,
-	sysUptime: number,
-	ram: number,
-	sessions: number,
-) => {
-	try {
-		await executePromise(
-			"INSERT INTO monitor (time, cpu, procUp, sysUp, ram, sessions) VALUES (?, ?, ?, ?, ?, ?)",
-			[new Date(), load, procUptime, sysUptime, ram, sessions],
-		);
-	} catch (e) {
-		console.error(e);
-	}
-};
+const measureMessageCreate = () => new Promise((resolve, reject) => {
+	const client = new Fosscord.Client({ intents: [], http: { api: "https://slowcord.understars.dev/api" } });
+	let start: any;
+	let message;
+	client.on("messageCreate", async (message) => {
+		if (!start) return;
+		if (message.author.id != client.user!.id) return;
+		if (message.channel.id != "1019955729054267764") return;
+		if (message.content != "hello this is a special message kthxbye") return;
 
-const makeTimedRequest = (path: string, body?: object): Promise<number> =>
-	new Promise((resolve, reject) => {
-		const opts = {
-			hostname: new URL(path).hostname,
-			port: 443,
-			path: new URL(path).pathname,
-			method: "GET",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: instance.token,
-			},
-			timeout: 1000,
-		};
-
-		let start: number, end: number;
-		const req = https.request(opts, (res) => {
-			if (res.statusCode! < 200 || res.statusCode! > 300) {
-				return reject(`${res.statusCode} ${res.statusMessage}`);
-			}
-
-			res.on("data", (data) => { });
-
-			res.on("end", () => {
-				end = Date.now();
-				resolve(end - start);
-			});
-		});
-
-		req.on("finish", () => {
-			if (body) req.write(JSON.stringify(body));
-			start = Date.now();
-		});
-
-		req.on("error", (error) => {
-			reject(error);
-		});
-
-		req.end();
-	});
-
-const measureApi = async (name: string, path: string, body?: object) => {
-	let error,
-		time = -1;
-	try {
-		time = await makeTimedRequest(path, body);
-	} catch (e) {
-		error = e as Error | string;
-	}
-
-	console.log(
-		`${name} took ${time}ms ${error ? "with error" : ""}`,
-		error ?? "",
-	);
-
-	await savePerf(time, name, error);
-};
-
-interface monitorzSchema {
-	load: number[];
-	procUptime: number;
-	sysUptime: number;
-	memPercent: number;
-	sessions: number;
-}
-
-const app = async () => {
-	// await new Promise((resolve) => dbConn.connect(resolve));
-	// console.log("Connected to db");
-	// await client.login(instance.token);
-
-	console.log(
-		`Monitoring performance for instance at ${new URL(instance.api).hostname
-		}`,
-	);
-
-	const doMeasurements = async () => {
-		await measureApi("ping", `${instance.api}/ping`);
-		await measureApi("users/@me", `${instance.api}/users/@me`);
-		await measureApi("login", `${instance.app}/login`);
-		// await gatewayMeasure("websocketPing");
-
-		try {
-			const res = await fetch(`${instance.api}/-/monitorz`, {
+		const ret = Math.floor(performance.now() - start);
+		client.destroy();
+		await fetch(
+			`https://slowcord.understars.dev/api/v9/channels/1019955729054267764/messages/${message.id}`,
+			{
+				method: "DELETE",
 				headers: {
-					Authorization: process.env.TOKEN as string,
+					authorization: process.env.TOKEN!,
 				},
-			});
-			const json = (await res.json()) as monitorzSchema;
-			await saveSystemUsage(
-				json.load[1],
-				json.procUptime,
-				json.sysUptime,
-				json.memPercent,
-				json.sessions,
-			);
-		} catch (e) { }
-
-		setTimeout(
-			doMeasurements,
-			parseInt(process.env.MEASURE_INTERVAL as string),
+			},
 		);
-	};
+		resolve(ret);
+	});
 
-	doMeasurements();
+	client.on("ready", async () => {
+		const channel = await client.channels.fetch("1019955729054267764");
+		if (!channel?.isText()) return;	// just for types
+		start = performance.now();
+		message = await channel.send("hello this is a special message kthxbye");
+	});
+
+	client.login(process.env.TOKEN);
+});
+
+const doGetMonitor = async () => {
+	const res = await fetch("https://slowcord.understars.dev/api/v9/-/monitorz", {
+		headers: {
+			authorization: process.env.TOKEN!
+		}
+	});
+	const json = await res.json();
+	return json;
 };
 
-app();
+const doSaveMeasurements = async (data: any, monitor: any) => {
+	const conn = await mysql.createConnection(process.env.DATABASE!);
+	for (const [key, value] of Object.entries(data)) {
+		try {
+			await conn.execute(
+				"INSERT INTO performance (value, endpoint, timestamp) VALUES (?, ?, ?)",
+				[value, key, new Date()]
+			);
+		}
+		catch (e) {
+			console.error(e);
+		}
+	}
+
+	await conn.execute(
+		"INSERT INTO monitor (time, cpu, procUp, sysUp, ram, sessions) VALUES (?, ?, ?, ?, ?, ?)",
+		[new Date(), monitor.load[1], monitor.procUptime, monitor.sysUptime, monitor.memPercent, monitor.sessions]
+	);
+
+	await conn.end();
+};
+
+const measurements = async () => {
+	const data: any = {};
+
+	data["ping"] = await doUrlMeasurement(new URL("https://slowcord.understars.dev/api/v9/ping"));
+	data["users/@me"] = await doUrlMeasurement(new URL("https://slowcord.understars.dev/api/v9/users/@me"));
+	data["channel"] = await doUrlMeasurement(new URL("https://slowcord.understars.dev/api/v9/channels/992711441737941119"));
+	data["messages"] = await doUrlMeasurement(new URL("https://slowcord.understars.dev/api/v9/channels/992711441737941119/messages?limit=1"));
+	data["login"] = await doUrlMeasurement(new URL("https://slowcord.understars.dev/login"));
+
+	data["messageCreate"] = await measureMessageCreate();
+
+	const monitor = await doGetMonitor();
+
+	await doSaveMeasurements(data, monitor);
+
+	setTimeout(measurements, parseInt(process.env.MEASURE_INTERVAL!));
+};
+
+measurements();
